@@ -216,7 +216,6 @@ def build_inference() -> None:
     def _do_predict(*values):
         features = _features_dict_from_components(values, feature_keys)
         try:
-            serving._cache = None
             out = serving.predict(features, alias=config.ALIAS_PRODUCTION)
             label_text = "🔴 **LIKELY TO CHURN**" if out["label"] == 1 else "🟢 **LIKELY TO STAY**"
             return (
@@ -282,7 +281,6 @@ def build_ab_test() -> None:
     def _do_compare(*values):
         features = _features_dict_from_components(values, feature_keys)
         try:
-            serving._cache = None
             out = serving.predict_ab(features)
             prod = out["production"]
             stag = out["staging"]
