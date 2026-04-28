@@ -2,12 +2,14 @@
 
 import argparse
 import datetime as dt
+import time
 
 import mlflow
+import mlflow.xgboost
 import numpy as np
 import pandas as pd
 
-from mlops_churn import config, data, monitoring, registry, serving
+from mlops_churn import config, data, monitoring, registry
 
 
 def _shift_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -65,13 +67,22 @@ def main() -> int:
             if args.mode == "drifted":
                 X_batch = _shift_features(X_batch)
 
-            latencies = []
-            labels = []
-            for _, row in X_batch.iterrows():
-                features = row.to_dict()
-                out = serving.predict(features, alias=args.alias)
-                latencies.append(out["latency_ms"])
-                labels.append(out["label"])
+            # Batch predict (much faster than per-row for 50+ samples)
+            model_uri = f"models:/{config.REGISTERED_MODEL_NAME}@{args.alias}"
+
+            # Load underlying model in native flavor for batch predict
+            try:
+                native_model = mlflow.sklearn.load_model(model_uri)
+            except Exception:
+                native_model = mlflow.xgboost.load_model(model_uri)
+
+            t0 = time.perf_counter()
+            labels_array = native_model.predict(X_batch)
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+
+            labels = [int(x) for x in labels_array]
+            # Approximate per-prediction latency
+            latencies = [elapsed_ms / len(labels)] * len(labels)
 
             drift_score = monitoring.compute_drift(
                 train_df[numeric_cols], X_batch[numeric_cols], numeric_cols
