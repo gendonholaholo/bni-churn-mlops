@@ -1,6 +1,7 @@
 """Data ingestion + preprocessing + train/val/test split."""
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from mlops_churn import config
@@ -48,3 +49,44 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df[config.NUMERIC_FEATURES] = scaler.fit_transform(df[config.NUMERIC_FEATURES])
 
     return df
+
+
+def get_splits(
+    df: pd.DataFrame,
+    val_size: float = 0.15,
+    test_size: float = 0.15,
+    random_state: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Split preprocessed DataFrame into train/val/test (default 70/15/15)."""
+    train_val, test = train_test_split(
+        df,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=df[config.TARGET],
+    )
+    val_size_adjusted = val_size / (1 - test_size)
+    train, val = train_test_split(
+        train_val,
+        test_size=val_size_adjusted,
+        random_state=random_state,
+        stratify=train_val[config.TARGET],
+    )
+    return train, val, test
+
+
+def write_splits_to_disk(train, val, test) -> None:
+    """Write train/val/test CSVs to config.DATA_PROCESSED_DIR."""
+    config.DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    train.to_csv(config.DATA_PROCESSED_DIR / "train.csv", index=False)
+    val.to_csv(config.DATA_PROCESSED_DIR / "val.csv", index=False)
+    test.to_csv(config.DATA_PROCESSED_DIR / "test.csv", index=False)
+
+
+def load_processed() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Read pre-split CSVs from disk."""
+    d = config.DATA_PROCESSED_DIR
+    return (
+        pd.read_csv(d / "train.csv"),
+        pd.read_csv(d / "val.csv"),
+        pd.read_csv(d / "test.csv"),
+    )

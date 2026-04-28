@@ -37,3 +37,23 @@ def test_preprocess_output_schema(synthetic_dataframe):
 
     # No NaN
     assert out.isna().sum().sum() == 0
+
+
+def test_get_splits_ratios(tmp_path, monkeypatch, synthetic_dataframe):
+    """get_splits writes train/val/test in approximately 70/15/15 ratio."""
+    monkeypatch.setattr(config, "DATA_PROCESSED_DIR", tmp_path)
+
+    # Stage processed file as if preprocess already ran
+    processed = data.preprocess(synthetic_dataframe)
+    train, val, test = data.get_splits(processed)
+
+    total = len(train) + len(val) + len(test)
+    assert total == len(synthetic_dataframe)
+    assert 0.65 < len(train) / total < 0.75
+    assert 0.10 < len(val) / total < 0.20
+    assert 0.10 < len(test) / total < 0.20
+
+    # All splits have target column
+    assert "Exited" in train.columns
+    assert "Exited" in val.columns
+    assert "Exited" in test.columns
