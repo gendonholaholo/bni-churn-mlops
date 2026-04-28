@@ -240,7 +240,79 @@ def build_inference() -> None:
 
 
 def build_ab_test() -> None:
-    gr.Markdown("## 🔀 A/B Test\n_(diisi di Task 21)_")
+    gr.Markdown("## 🔀 A/B Test — Bandingkan Production vs Staging")
+
+    status = gr.Markdown("📦 _(klik Refresh)_")
+    refresh_btn = gr.Button("🔄 Refresh", size="sm")
+
+    sample_choices = ["Custom (isi manual)"] + list(config.AB_TEST_SAMPLES.keys())
+    sample_dropdown = gr.Dropdown(
+        choices=sample_choices, value="Custom (isi manual)", label="Pilih customer contoh"
+    )
+
+    components = render_customer_form()
+    feature_keys = list(components.keys())
+
+    compare_btn = gr.Button("🔀 Compare A/B", variant="primary")
+    result_md = gr.Markdown("", visible=False)
+    agreement_md = gr.Markdown("", visible=False)
+
+    def _refresh_status():
+        try:
+            prod = registry.get_version_by_alias(config.ALIAS_PRODUCTION).version
+        except Exception:
+            prod = "—"
+        try:
+            stag = registry.get_version_by_alias(config.ALIAS_STAGING).version
+        except Exception:
+            stag = "—"
+        return f"🅰️ Production: **v{prod}**  |  🅱️ Staging: **v{stag}**"
+
+    refresh_btn.click(_refresh_status, outputs=status)
+
+    def _load_sample(name: str):
+        if name == "Custom (isi manual)":
+            return [components[k].value for k in feature_keys]
+        sample = config.AB_TEST_SAMPLES[name]
+        return [sample[k] for k in feature_keys]
+
+    sample_dropdown.change(_load_sample, sample_dropdown, list(components.values()))
+
+    def _do_compare(*values):
+        features = _features_dict_from_components(values, feature_keys)
+        try:
+            serving._cache = None
+            out = serving.predict_ab(features)
+            prod = out["production"]
+            stag = out["staging"]
+            prod_lab = "🔴 CHURN" if prod["label"] == 1 else "🟢 STAY"
+            stag_lab = "🔴 CHURN" if stag["label"] == 1 else "🟢 STAY"
+
+            md = (
+                f"| | Production v{prod['version']} | Staging v{stag['version']} |\n"
+                f"|---|---|---|\n"
+                f"| Verdict   | {prod_lab} | {stag_lab} |\n"
+                f"| Probability | {prod['prob'] * 100:.1f}% | {stag['prob'] * 100:.1f}% |\n"
+                f"| Latency   | {prod['latency_ms']:.1f} ms | {stag['latency_ms']:.1f} ms |\n"
+            )
+            agreement = (
+                "🟢 Kedua model SETUJU"
+                if out["agreement"]
+                else "🟡 Model BERBEDA pendapat — kandidat case yang menarik"
+            )
+            return (
+                gr.update(value=md, visible=True),
+                gr.update(value=agreement, visible=True),
+            )
+        except Exception as e:
+            return (
+                gr.update(value=f"❌ Error: {e}", visible=True),
+                gr.update(value="", visible=False),
+            )
+
+    compare_btn.click(
+        _do_compare, inputs=list(components.values()), outputs=[result_md, agreement_md]
+    )
 
 
 def build_app() -> gr.Blocks:
