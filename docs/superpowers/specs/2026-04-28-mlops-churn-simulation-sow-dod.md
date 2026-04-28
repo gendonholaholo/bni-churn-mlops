@@ -35,11 +35,12 @@ Membangun simulasi MLOps end-to-end untuk:
 | XGBoost | terbaru kompatibel | IN |
 | pandas, numpy, matplotlib | terbaru kompatibel | IN |
 | scipy | terbaru kompatibel — `scipy.stats.ks_2samp` untuk drift | IN |
+| **optuna** | 4.8.0+ — hyperparameter tuning XGBoost (item #21) | IN |
 | pytest | untuk testing | IN |
 | MLflow backend | SQLite lokal | IN |
 | Storage artifacts | Local filesystem | IN |
 
-## 4. In Scope (20 item, semua wajib diimplementasi)
+## 4. In Scope (21 item, semua wajib diimplementasi)
 
 ### Tier A — Core MLOps
 1. Data ingestion & preprocessing pipeline (reproducible)
@@ -72,6 +73,7 @@ Membangun simulasi MLOps end-to-end untuk:
     - Test inference function (valid input → valid output)
     - Test drift detection function (known distributions → expected score)
 20. Design document & implementation plan di `docs/superpowers/specs/`
+21. **Optuna hyperparameter tuning untuk XGBoost** (`scripts/tune.py`) — 100 trials TPE sampler, search space 6 hyperparameter (lr, n_estimators, max_depth, min_child_weight, subsample, colsample_bytree), tiap trial = 1 MLflow run via reuse `train.train_one` (tag `source=optuna-tune`, `trial=N`). No auto-promote — manual via `scripts/promote.py` atau MLflow UI.
 
 ## 5. Out of Scope (BINDING — TIDAK akan diimplementasi)
 
@@ -85,7 +87,7 @@ Membangun simulasi MLOps end-to-end untuk:
 | Real-time streaming (Kafka, dll) | Batch + simulasi traffic cukup |
 | Database production (Postgres/MySQL) | SQLite cukup |
 | Feature store (Feast, Tecton) | Adds tooling tanpa nilai untuk simulasi |
-| Optuna / automated hyperparameter tuning | Manual variations cukup |
+| Optuna untuk Random Forest + Logistic Regression | Hanya XGBoost yang in-scope (item #21); RF/LR cukup variants manual |
 | Custom MLflow plugins / custom flavor | Pakai built-in flavors |
 | Custom model explainability (SHAP, LIME) | Bukan fokus MLOps |
 | Frontend kustom selain Gradio | Gradio cukup |
@@ -133,7 +135,7 @@ Gradio harus **kohesif dalam SATU app** dengan `gr.Tabs` (3 tab saja: Training L
 ### 8.2 Project-Level DoD
 - [ ] User bisa demo end-to-end flow dalam ≤ 15 menit dengan ≤ 5 command
 - [ ] Setiap pain point PM ("tidak bisa monitor perkembangan") punya komponen yang menjawabnya
-- [ ] Semua 20 item di "In Scope" punya bukti implementasi (file/test/screenshot)
+- [ ] Semua 21 item di "In Scope" punya bukti implementasi (file/test/screenshot)
 - [ ] Spec & implementation plan di-review & approved sebelum koding dimulai
 - [ ] Setiap library yang digunakan sudah dicek docs terbarunya via Context7/WebFetch
 - [ ] `uv run ruff check .` PASS (no lint errors)

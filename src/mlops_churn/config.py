@@ -31,6 +31,18 @@ ALIAS_ARCHIVED = "archived"
 # ---- Drift ----
 DRIFT_SCORE_THRESHOLD = 0.2  # KS D-statistic; >0.2 = noticeable drift
 
+# ---- Optuna (XGBoost only — see SoW item 21) ----
+OPTUNA_N_TRIALS = 100
+OPTUNA_RANDOM_SEED = 42
+OPTUNA_SEARCH_SPACE = {
+    "learning_rate": {"low": 0.001, "high": 0.3, "log": True},
+    "n_estimators": {"low": 50, "high": 1000, "log": False},
+    "max_depth": {"low": 2, "high": 12, "log": False},
+    "min_child_weight": {"low": 1, "high": 10, "log": False},
+    "subsample": {"low": 0.5, "high": 1.0, "log": False},
+    "colsample_bytree": {"low": 0.5, "high": 1.0, "log": False},
+}
+
 # ---- Hyperparameter spec per algorithm (used by seed, Gradio Lab, tests) ----
 HYPERPARAM_SPEC = {
     "logistic_regression": {
