@@ -1,6 +1,6 @@
 """Single Gradio app: 3 tabs (Training Lab / Inference / A/B Test).
 
-Action surface only — observation is in MLflow UI (port 5000).
+Action surface only — observation is in MLflow UI (port 5001).
 """
 
 import gradio as gr
@@ -29,7 +29,7 @@ def _slider_components(algo: str):
 
 
 def build_training_lab() -> None:
-    gr.Markdown("## 🎛️ Training Lab — atur knob → train → MLflow merekam")
+    gr.Markdown("## Training Lab — atur knob, train, MLflow merekam")
 
     algo = gr.Dropdown(
         choices=list(config.HYPERPARAM_SPEC.keys()),
@@ -45,7 +45,7 @@ def build_training_lab() -> None:
         col_groups[a] = col
 
     tag = gr.Textbox(label="Tag opsional", placeholder="demo-pm-april")
-    btn = gr.Button("🚀 Train & Log to MLflow", variant="primary")
+    btn = gr.Button("Train & Log to MLflow", variant="primary")
 
     status = gr.Markdown("", visible=False)
     metrics_md = gr.Markdown("", visible=False)
@@ -81,11 +81,11 @@ def build_training_lab() -> None:
                 f"| Recall    | {metrics['recall']:.3f} |"
             )
             return (
-                gr.update(value="✅ Selesai", visible=True),
+                gr.update(value="**Selesai.**", visible=True),
                 gr.update(value=metrics_table, visible=True),
                 gr.update(
                     value=(
-                        f"🔗 Run ID: `{run_id}` — "
+                        f"Run ID: `{run_id}` — "
                         f"[Buka di MLflow UI]("
                         f"{config.MLFLOW_UI_URL}/#/experiments/"
                         f"{mlflow.get_run(run_id).info.experiment_id}/runs/{run_id})"
@@ -95,7 +95,7 @@ def build_training_lab() -> None:
             )
         except Exception as e:
             return (
-                gr.update(value=f"❌ Error: {e}", visible=True),
+                gr.update(value=f"**Error:** {e}", visible=True),
                 gr.update(value="", visible=False),
                 gr.update(value="", visible=False),
             )
@@ -188,15 +188,15 @@ def _features_dict_from_components(component_values: list, keys: list[str]) -> d
 
 
 def build_inference() -> None:
-    gr.Markdown("## 🚀 Inference — Prediksi Churn")
+    gr.Markdown("## Inference — Prediksi Churn")
 
-    status = gr.Markdown("📦 Model serving: _(klik Refresh)_")
-    refresh_btn = gr.Button("🔄 Refresh", size="sm")
+    status = gr.Markdown("Model serving: _(klik Refresh)_")
+    refresh_btn = gr.Button("Refresh", size="sm")
 
     components = render_customer_form()
     feature_keys = list(components.keys())
 
-    predict_btn = gr.Button("🔮 Predict", variant="primary")
+    predict_btn = gr.Button("Predict", variant="primary")
     result_label = gr.Markdown("", visible=False)
     result_meta = gr.Markdown("", visible=False)
 
@@ -204,13 +204,12 @@ def build_inference() -> None:
         try:
             mv = registry.get_version_by_alias(config.ALIAS_PRODUCTION)
             return (
-                f"📦 Model serving: `{config.REGISTERED_MODEL_NAME}` "
+                f"Model serving: `{config.REGISTERED_MODEL_NAME}` "
                 f"**v{mv.version}** (@{config.ALIAS_PRODUCTION})"
             )
         except Exception:
             return (
-                "⚠️ Belum ada model `@production`. "
-                "Jalankan `uv run python -m scripts.seed_runs` dulu."
+                "Belum ada model `@production`. Jalankan `uv run python -m scripts.seed_runs` dulu."
             )
 
     refresh_btn.click(_refresh_status, outputs=status)
@@ -219,7 +218,7 @@ def build_inference() -> None:
         features = _features_dict_from_components(values, feature_keys)
         try:
             out = serving.predict(features, alias=config.ALIAS_PRODUCTION)
-            label_text = "🔴 **LIKELY TO CHURN**" if out["label"] == 1 else "🟢 **LIKELY TO STAY**"
+            label_text = "**LIKELY TO CHURN**" if out["label"] == 1 else "**LIKELY TO STAY**"
             return (
                 gr.update(
                     value=f"{label_text} — probability: {out['prob'] * 100:.1f}%",
@@ -232,7 +231,7 @@ def build_inference() -> None:
             )
         except Exception as e:
             return (
-                gr.update(value=f"❌ Error: {e}", visible=True),
+                gr.update(value=f"**Error:** {e}", visible=True),
                 gr.update(value="", visible=False),
             )
 
@@ -242,10 +241,10 @@ def build_inference() -> None:
 
 
 def build_ab_test() -> None:
-    gr.Markdown("## 🔀 A/B Test — Bandingkan Production vs Staging")
+    gr.Markdown("## A/B Test — Bandingkan Production vs Staging")
 
-    status = gr.Markdown("📦 _(klik Refresh)_")
-    refresh_btn = gr.Button("🔄 Refresh", size="sm")
+    status = gr.Markdown("_(klik Refresh)_")
+    refresh_btn = gr.Button("Refresh", size="sm")
 
     sample_choices = ["Custom (isi manual)"] + list(config.AB_TEST_SAMPLES.keys())
     sample_dropdown = gr.Dropdown(
@@ -255,7 +254,7 @@ def build_ab_test() -> None:
     components = render_customer_form()
     feature_keys = list(components.keys())
 
-    compare_btn = gr.Button("🔀 Compare A/B", variant="primary")
+    compare_btn = gr.Button("Compare A/B", variant="primary")
     result_md = gr.Markdown("", visible=False)
     agreement_md = gr.Markdown("", visible=False)
 
@@ -268,7 +267,7 @@ def build_ab_test() -> None:
             stag = registry.get_version_by_alias(config.ALIAS_STAGING).version
         except Exception:
             stag = "—"
-        return f"🅰️ Production: **v{prod}**  |  🅱️ Staging: **v{stag}**"
+        return f"Production: **v{prod}**  |  Staging: **v{stag}**"
 
     refresh_btn.click(_refresh_status, outputs=status)
 
@@ -286,8 +285,8 @@ def build_ab_test() -> None:
             out = serving.predict_ab(features)
             prod = out["production"]
             stag = out["staging"]
-            prod_lab = "🔴 CHURN" if prod["label"] == 1 else "🟢 STAY"
-            stag_lab = "🔴 CHURN" if stag["label"] == 1 else "🟢 STAY"
+            prod_lab = "CHURN" if prod["label"] == 1 else "STAY"
+            stag_lab = "CHURN" if stag["label"] == 1 else "STAY"
 
             md = (
                 f"| | Production v{prod['version']} | Staging v{stag['version']} |\n"
@@ -297,9 +296,9 @@ def build_ab_test() -> None:
                 f"| Latency   | {prod['latency_ms']:.1f} ms | {stag['latency_ms']:.1f} ms |\n"
             )
             agreement = (
-                "🟢 Kedua model SETUJU"
+                "Kedua model **SETUJU**."
                 if out["agreement"]
-                else "🟡 Model BERBEDA pendapat — kandidat case yang menarik"
+                else "Model **BERBEDA pendapat** — kandidat case yang menarik."
             )
             return (
                 gr.update(value=md, visible=True),
@@ -307,7 +306,7 @@ def build_ab_test() -> None:
             )
         except Exception as e:
             return (
-                gr.update(value=f"❌ Error: {e}", visible=True),
+                gr.update(value=f"**Error:** {e}", visible=True),
                 gr.update(value="", visible=False),
             )
 
@@ -319,15 +318,15 @@ def build_ab_test() -> None:
 def build_app() -> gr.Blocks:
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
     with gr.Blocks(title="BNI Churn MLOps Simulation") as demo:
-        gr.Markdown("# 🏦 BNI Churn — MLOps Simulation")
+        gr.Markdown("# BNI Churn — MLOps Simulation")
         with gr.Tabs():
-            with gr.Tab("🎛️ Training Lab"):
+            with gr.Tab("Training Lab"):
                 build_training_lab()
-            with gr.Tab("🚀 Inference"):
+            with gr.Tab("Inference"):
                 build_inference()
-            with gr.Tab("🔀 A/B Test"):
+            with gr.Tab("A/B Test"):
                 build_ab_test()
-        gr.Markdown(f"📊 MLflow UI: [{config.MLFLOW_UI_URL}]({config.MLFLOW_UI_URL})")
+        gr.Markdown(f"MLflow UI: [{config.MLFLOW_UI_URL}]({config.MLFLOW_UI_URL})")
     return demo
 
 
