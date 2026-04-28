@@ -72,8 +72,8 @@ test/
 │   ├── raw/Churn_Modelling.csv
 │   └── processed/{train,val,test}.csv
 │
-├── mlruns/                       # MLflow artifacts (gitignored)
-├── mlflow.db                     # MLflow SQLite (gitignored)
+├── mlartifacts/                  # MLflow artifact store (gitignored)
+├── mlflow.db                     # MLflow SQLite metadata (gitignored)
 │
 └── docs/superpowers/specs/       # design + plan + sow-dod
 ```
@@ -203,9 +203,10 @@ Setelah promosi, panggilan `serving.predict()` berikutnya pakai version baru oto
 | promote.py + UI | Registry transition history | timestamp + version + alias change (MLflow native) |
 
 ### Model Loading Strategy
-Module-level cache di `serving.py` invalidated by version polling:
+Module-level cache di `serving.py` invalidated by version polling. **Single-threaded demo — no lock needed; jangan refactor untuk thread-safety kecuali workload Gradio jadi konkuren.**
+
 ```python
-_cache: dict | None = None
+_cache: dict | None = None  # single-threaded demo cache; no lock by design
 
 def predict(features, alias="production"):
     client = MlflowClient()
@@ -266,8 +267,10 @@ def predict(features, alias="production"):
 - `confusion_matrix.png`
 
 ### Filesystem Layout (MLflow lokal)
-- `test/mlflow.db` (SQLite metadata)
-- `test/mlruns/` (artifacts per run)
+- `test/mlflow.db` (SQLite metadata: experiments, runs, registry)
+- `test/mlartifacts/` (artifacts per run: model files, plots, schema)
+
+Konfigurasi server: `--backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlartifacts` — kedua path konsisten antara Section 1, Section 3, dan `run.sh`.
 
 ---
 
@@ -398,10 +401,11 @@ KISS — bukan 100% coverage. Setiap fungsi non-trivial punya test yang gagal sa
 - `test_predict_returns_dict_with_required_keys`
 - `test_predict_ab_returns_both_versions`
 
-**`test_monitoring.py` (3):**
+**`test_monitoring.py` (4):**
 - `test_drift_score_zero_for_identical`
 - `test_drift_score_high_for_shifted`
 - `test_log_batch_metrics_writes_5_metrics`
+- `test_log_batch_metrics_sets_alert_tag_when_drift_exceeds_threshold` (ties ke item #14 alerting)
 
 ### Run
 ```bash
@@ -444,7 +448,7 @@ uv run python -m scripts.seed_runs
 **Step 1 (2m):** "Inilah masalahnya, inilah solusinya" — buka MLflow UI, tampilkan 2 experiments
 **Step 2 (3m):** "Riwayat Training Lengkap" — Compare 3 runs side-by-side
 **Step 3 (3m):** "Train Model Live" — Gradio Training Lab → adjust sliders → train → MLflow record
-**Step 4 (2m):** "Promote Model" — Set alias staging via MLflow UI
+**Step 4 (2m):** "Promote Model" — Set alias `staging` ke versi yang baru saja di-train di Step 3 (run dari Gradio Training Lab). Lakukan via MLflow UI: tab Models → churn-model → versi terbaru → Set Alias → ketik `staging`
 **Step 5 (2m):** "Inference" — Gradio Inference tab, prediksi customer
 **Step 6 (2m):** "A/B Test" — Compare production vs staging
 **Step 7 (1m):** "Monitoring Produksi" — `simulate_traffic --mode drifted`, lihat drift_score chart + alert tag
@@ -491,7 +495,7 @@ uv run python -m scripts.seed_runs
 7. uv as package manager; ruff as linter+formatter
 8. `uv.lock` committed to git; `.venv/` gitignored
 9. 6 src + 3 script + 5 test file = 14 file kode
-10. 13 test cases, target < 30 detik runtime
+10. 14 test cases (3+2+3+2+4), target < 30 detik runtime
 
 ## Appendix C — Out-of-Scope (Binding)
 

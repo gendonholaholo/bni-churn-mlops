@@ -52,7 +52,7 @@ Membangun simulasi MLOps end-to-end untuk:
 ### Tier B — Production Realism
 7. Gradio app untuk inference (input fitur nasabah → prediksi churn + probability)
 8. Skrip simulasi inference traffic (men-generate prediction logs)
-9. Production monitoring dilihat di **MLflow UI native** (1 long-running run bernama `production-monitoring` dengan time-series metrics: prediction count, latency p50/p95, drift score) — TIDAK ada tab monitoring di Gradio
+9. Production monitoring dilihat di **MLflow UI native**, di experiment `production-monitoring`. **1 run per invocation** dari `simulate_traffic.py`, dengan time-series metrics per batch (prediction count, latency p50/p95, churn_rate, drift_score). TIDAK ada tab monitoring di Gradio
 10. Skrip simulasi data drift (input dengan distribusi shifted)
 11. Drift detection via `scipy.stats.ks_2samp` (Kolmogorov-Smirnov test) — pakai library existing, no custom math. Logged sebagai metric `drift_score` ke MLflow, visual di MLflow UI native (chart over step)
 12. Skrip retraining trigger (manual command)
