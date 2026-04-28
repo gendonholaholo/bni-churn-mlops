@@ -84,8 +84,9 @@ def build_training_lab() -> None:
                 gr.update(
                     value=(
                         f"🔗 Run ID: `{run_id}` — "
-                        f"[Buka di MLflow UI]"
-                        f"({config.MLFLOW_TRACKING_URI}/#/experiments/0/runs/{run_id})"
+                        f"[Buka di MLflow UI]("
+                        f"{config.MLFLOW_TRACKING_URI}/#/experiments/"
+                        f"{mlflow.get_run(run_id).info.experiment_id}/runs/{run_id})"
                     ),
                     visible=True,
                 ),
