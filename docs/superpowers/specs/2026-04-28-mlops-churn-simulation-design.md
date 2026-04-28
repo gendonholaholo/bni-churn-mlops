@@ -381,7 +381,7 @@ KISS — bukan 100% coverage. Setiap fungsi non-trivial punya test yang gagal sa
 - `tmp_mlflow_uri(tmp_path)` — isolated MLflow per test
 - `synthetic_data` — make_classification(200 samples, 10 features, random_state=42)
 
-### 13 Test Cases (5 file)
+### 14 Test Cases (5 file)
 
 **`test_data.py` (3):**
 - `test_load_raw_returns_dataframe`
@@ -400,6 +400,8 @@ KISS — bukan 100% coverage. Setiap fungsi non-trivial punya test yang gagal sa
 **`test_serving.py` (2):**
 - `test_predict_returns_dict_with_required_keys`
 - `test_predict_ab_returns_both_versions`
+
+(Test_data:3 + test_train:2 + test_registry:3 + test_serving:2 + test_monitoring:4 = **14 total**)
 
 **`test_monitoring.py` (4):**
 - `test_drift_score_zero_for_identical`
