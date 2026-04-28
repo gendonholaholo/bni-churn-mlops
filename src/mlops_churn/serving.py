@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 import mlflow
+import mlflow.xgboost
 import pandas as pd
 from mlflow import MlflowClient
 
@@ -32,6 +33,34 @@ def _load_or_use_cache(alias: str):
     return _cache["model"], _cache["version"]
 
 
+def _get_probability(features: dict, alias: str, label: int) -> float:
+    """Load underlying model in its native flavor and call predict_proba.
+
+    Tries sklearn first (works for LR + RF), then xgboost flavor.
+    Falls back to label if neither provides predict_proba.
+    """
+    import pandas as pd
+    X = pd.DataFrame([features])
+    model_uri = f"models:/{config.REGISTERED_MODEL_NAME}@{alias}"
+
+    # Try sklearn flavor first
+    try:
+        sk_model = mlflow.sklearn.load_model(model_uri)
+        return float(sk_model.predict_proba(X)[0, 1])
+    except Exception:
+        pass
+
+    # Try xgboost flavor
+    try:
+        xgb_model = mlflow.xgboost.load_model(model_uri)
+        return float(xgb_model.predict_proba(X)[0, 1])
+    except Exception:
+        pass
+
+    # Last resort: degenerate label-based prob
+    return float(label)
+
+
 def predict(features: dict[str, Any], alias: str = "production") -> dict[str, Any]:
     """Run inference. Returns {prob, label, latency_ms, version}."""
     model, version = _load_or_use_cache(alias)
@@ -43,15 +72,8 @@ def predict(features: dict[str, Any], alias: str = "production") -> dict[str, An
 
     label = int(raw[0]) if hasattr(raw, "__getitem__") else int(raw)
 
-    try:
-        underlying = model.unwrap_python_model() if hasattr(model, "unwrap_python_model") else None
-        if underlying and hasattr(underlying, "predict_proba"):
-            prob = float(underlying.predict_proba(X)[0, 1])
-        else:
-            sk_model = mlflow.sklearn.load_model(f"models:/{config.REGISTERED_MODEL_NAME}@{alias}")
-            prob = float(sk_model.predict_proba(X)[0, 1])
-    except Exception:
-        prob = float(label)
+    # Get probability — try flavor-specific loaders
+    prob = _get_probability(features, alias, label)
 
     return {
         "prob": prob,
