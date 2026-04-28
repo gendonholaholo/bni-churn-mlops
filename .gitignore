@@ -1,0 +1,21 @@
+# uv / venv
+.venv/
+__pycache__/
+*.py[cod]
+
+# MLflow runtime
+mlruns/
+mlartifacts/
+mlflow.db
+mlflow.db-journal
+
+# Data (raw + processed are gitignored except .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
