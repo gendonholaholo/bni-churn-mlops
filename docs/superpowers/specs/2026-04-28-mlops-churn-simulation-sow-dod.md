@@ -96,7 +96,7 @@ Membangun simulasi MLOps end-to-end untuk:
 ## 6. Tool Boundary & UI Constraint
 
 ### Tool boundary (no overlap)
-- **MLflow native UI** (port 5000) = surface OBSERVASI: experiment view, run comparison, model registry, monitoring, drift, audit trail
+- **MLflow native UI** (port 5001 — port 5000 di-reserve macOS Control Center) = surface OBSERVASI: experiment view, run comparison, model registry, monitoring, drift, audit trail
 - **Gradio app** (port 7860) = surface AKSI: trigger training (Training Lab), live inference, A/B test toggle
 - Tidak boleh duplikasi capability (mis. tidak ada tab "Monitoring" di Gradio karena MLflow sudah punya)
 

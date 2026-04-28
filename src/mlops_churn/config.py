@@ -12,11 +12,11 @@ DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 # ---- MLflow ----
 # File-based SQLite — works without server. Server in run.sh exposes the same DB on
-# port 5000 for the UI.
+# port 5001 (macOS reserves port 5000 for AirPlay Receiver / Control Center).
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 # Public URL for MLflow UI (used in Gradio app footer + run links — only valid when
 # run.sh is up).
-MLFLOW_UI_URL = "http://localhost:5000"
+MLFLOW_UI_URL = "http://localhost:5001"
 MLFLOW_BACKEND = "sqlite:///mlflow.db"
 MLFLOW_ARTIFACT_ROOT = "./mlartifacts"
 

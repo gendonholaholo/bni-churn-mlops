@@ -27,8 +27,10 @@ uv run python -m scripts.seed_runs
 
 # Open in browser:
 #  - Gradio app: http://localhost:7860
-#  - MLflow UI: http://localhost:5000
+#  - MLflow UI: http://localhost:5001
 ```
+
+> **Catatan port:** macOS Control Center (AirPlay Receiver) reserve port 5000 secara default. Kita pakai 5001 supaya tidak konflik tanpa harus disable AirPlay di System Settings.
 
 ## Development
 
@@ -41,7 +43,7 @@ uv run ruff format .    # format
 ## Demo Flow (≤ 15 menit)
 
 1. Pre-demo: `uv run python -m scripts.seed_runs` → 9 baseline runs + register top 2
-2. Step 1 (2m): Buka MLflow UI `:5000` — show 2 experiments
+2. Step 1 (2m): Buka MLflow UI `:5001` — show 2 experiments
 3. Step 2 (3m): MLflow → `churn-prediction` → Compare 3 runs side-by-side
 4. Step 3 (3m): Gradio Training Lab → adjust slider → train → run baru tercatat di MLflow
 5. Step 4 (2m): MLflow Models → set alias `staging` ke versi yang baru di-train
