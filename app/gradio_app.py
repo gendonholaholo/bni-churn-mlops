@@ -87,7 +87,7 @@ def build_training_lab() -> None:
                     value=(
                         f"🔗 Run ID: `{run_id}` — "
                         f"[Buka di MLflow UI]("
-                        f"{config.MLFLOW_TRACKING_URI}/#/experiments/"
+                        f"{config.MLFLOW_UI_URL}/#/experiments/"
                         f"{mlflow.get_run(run_id).info.experiment_id}/runs/{run_id})"
                     ),
                     visible=True,
@@ -327,7 +327,7 @@ def build_app() -> gr.Blocks:
                 build_inference()
             with gr.Tab("🔀 A/B Test"):
                 build_ab_test()
-        gr.Markdown(f"📊 MLflow UI: [{config.MLFLOW_TRACKING_URI}]({config.MLFLOW_TRACKING_URI})")
+        gr.Markdown(f"📊 MLflow UI: [{config.MLFLOW_UI_URL}]({config.MLFLOW_UI_URL})")
     return demo
 
 

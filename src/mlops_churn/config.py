@@ -11,7 +11,12 @@ DATA_RAW_PATH = PROJECT_ROOT / "data" / "raw" / "Churn_Modelling.csv"
 DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 # ---- MLflow ----
-MLFLOW_TRACKING_URI = "http://localhost:5000"
+# File-based SQLite — works without server. Server in run.sh exposes the same DB on
+# port 5000 for the UI.
+MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
+# Public URL for MLflow UI (used in Gradio app footer + run links — only valid when
+# run.sh is up).
+MLFLOW_UI_URL = "http://localhost:5000"
 MLFLOW_BACKEND = "sqlite:///mlflow.db"
 MLFLOW_ARTIFACT_ROOT = "./mlartifacts"
 

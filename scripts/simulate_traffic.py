@@ -107,9 +107,7 @@ def main() -> int:
             print(row_str)
 
         print(f"\n✅ Run {run_id[:6]} logged.")
-        print(
-            f"🔗 {config.MLFLOW_TRACKING_URI}/#/experiments/{run.info.experiment_id}/runs/{run_id}"
-        )
+        print(f"🔗 {config.MLFLOW_UI_URL}/#/experiments/{run.info.experiment_id}/runs/{run_id}")
     return 0
 
 
