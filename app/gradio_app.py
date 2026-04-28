@@ -6,7 +6,7 @@ Action surface only — observation is in MLflow UI (port 5000).
 import gradio as gr
 import mlflow
 
-from mlops_churn import config, train
+from mlops_churn import config, registry, serving, train
 
 
 def _params_for_algo(algo: str) -> dict:
@@ -108,8 +108,135 @@ def build_training_lab() -> None:
     )
 
 
+def render_customer_form() -> dict:
+    """Render the 10-field customer form. Returns dict of components."""
+    components = {}
+    schema = config.CUSTOMER_FEATURE_SCHEMA
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("**Demografi**")
+            components["CreditScore"] = gr.Slider(
+                schema["CreditScore"]["min"],
+                schema["CreditScore"]["max"],
+                value=schema["CreditScore"]["default"],
+                step=1,
+                label="CreditScore",
+            )
+            components["Age"] = gr.Slider(
+                schema["Age"]["min"],
+                schema["Age"]["max"],
+                value=schema["Age"]["default"],
+                step=1,
+                label="Age",
+            )
+            components["Tenure"] = gr.Slider(
+                schema["Tenure"]["min"],
+                schema["Tenure"]["max"],
+                value=schema["Tenure"]["default"],
+                step=1,
+                label="Tenure (years)",
+            )
+            components["Geography"] = gr.Dropdown(
+                choices=schema["Geography"]["choices"],
+                value=schema["Geography"]["default"],
+                label="Geography",
+            )
+            components["Gender"] = gr.Radio(
+                choices=schema["Gender"]["choices"],
+                value=schema["Gender"]["default"],
+                label="Gender",
+            )
+        with gr.Column():
+            gr.Markdown("**Akun**")
+            components["Balance"] = gr.Number(
+                value=schema["Balance"]["default"],
+                label="Balance",
+                minimum=schema["Balance"]["min"],
+                maximum=schema["Balance"]["max"],
+            )
+            components["NumOfProducts"] = gr.Slider(
+                schema["NumOfProducts"]["min"],
+                schema["NumOfProducts"]["max"],
+                value=schema["NumOfProducts"]["default"],
+                step=1,
+                label="NumOfProducts",
+            )
+            components["HasCrCard"] = gr.Radio(
+                choices=[("Yes", 1), ("No", 0)],
+                value=schema["HasCrCard"]["default"],
+                label="HasCrCard",
+            )
+            components["IsActiveMember"] = gr.Radio(
+                choices=[("Yes", 1), ("No", 0)],
+                value=schema["IsActiveMember"]["default"],
+                label="IsActiveMember",
+            )
+            components["EstimatedSalary"] = gr.Number(
+                value=schema["EstimatedSalary"]["default"],
+                label="EstimatedSalary",
+                minimum=schema["EstimatedSalary"]["min"],
+                maximum=schema["EstimatedSalary"]["max"],
+            )
+    return components
+
+
+def _features_dict_from_components(component_values: list, keys: list[str]) -> dict:
+    return dict(zip(keys, component_values, strict=True))
+
+
 def build_inference() -> None:
-    gr.Markdown("## 🚀 Inference\n_(diisi di Task 20)_")
+    gr.Markdown("## 🚀 Inference — Prediksi Churn")
+
+    status = gr.Markdown("📦 Model serving: _(klik Refresh)_")
+    refresh_btn = gr.Button("🔄 Refresh", size="sm")
+
+    components = render_customer_form()
+    feature_keys = list(components.keys())
+
+    predict_btn = gr.Button("🔮 Predict", variant="primary")
+    result_label = gr.Markdown("", visible=False)
+    result_meta = gr.Markdown("", visible=False)
+
+    def _refresh_status():
+        try:
+            mv = registry.get_version_by_alias(config.ALIAS_PRODUCTION)
+            return (
+                f"📦 Model serving: `{config.REGISTERED_MODEL_NAME}` "
+                f"**v{mv.version}** (@{config.ALIAS_PRODUCTION})"
+            )
+        except Exception:
+            return (
+                "⚠️ Belum ada model `@production`. "
+                "Jalankan `uv run python -m scripts.seed_runs` dulu."
+            )
+
+    refresh_btn.click(_refresh_status, outputs=status)
+
+    def _do_predict(*values):
+        features = _features_dict_from_components(values, feature_keys)
+        try:
+            serving._cache = None
+            out = serving.predict(features, alias=config.ALIAS_PRODUCTION)
+            label_text = "🔴 **LIKELY TO CHURN**" if out["label"] == 1 else "🟢 **LIKELY TO STAY**"
+            return (
+                gr.update(
+                    value=f"{label_text} — probability: {out['prob'] * 100:.1f}%",
+                    visible=True,
+                ),
+                gr.update(
+                    value=f"Latency: {out['latency_ms']:.1f} ms · Model v{out['version']}",
+                    visible=True,
+                ),
+            )
+        except Exception as e:
+            return (
+                gr.update(value=f"❌ Error: {e}", visible=True),
+                gr.update(value="", visible=False),
+            )
+
+    predict_btn.click(
+        _do_predict, inputs=list(components.values()), outputs=[result_label, result_meta]
+    )
 
 
 def build_ab_test() -> None:
