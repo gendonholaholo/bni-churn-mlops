@@ -40,6 +40,7 @@ def _get_probability(features: dict, alias: str, label: int) -> float:
     Falls back to label if neither provides predict_proba.
     """
     import pandas as pd
+
     X = pd.DataFrame([features])
     model_uri = f"models:/{config.REGISTERED_MODEL_NAME}@{alias}"
 
