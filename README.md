@@ -30,9 +30,6 @@ uv run python -m scripts.seed_runs
 #  - MLflow UI: http://localhost:5000
 ```
 
-## Demo Flow (≤ 15 min)
-See [docs/superpowers/specs/2026-04-28-mlops-churn-simulation-design.md](docs/superpowers/specs/2026-04-28-mlops-churn-simulation-design.md) Section 7.
-
 ## Development
 
 ```bash
