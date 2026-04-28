@@ -46,3 +46,12 @@ def synthetic_dataframe():
             "Exited": [0, 0, 1, 0] * 25,
         }
     )
+
+
+@pytest.fixture
+def numeric_only_config(monkeypatch):
+    """For tests using make_classification (f0..f9 cols, no categoricals)."""
+    from mlops_churn import config
+
+    monkeypatch.setattr(config, "NUMERIC_FEATURES", [f"f{i}" for i in range(10)])
+    monkeypatch.setattr(config, "CATEGORICAL_FEATURES", [])

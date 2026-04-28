@@ -8,7 +8,7 @@ import time
 from typing import Any
 
 import mlflow
-import mlflow.xgboost
+import mlflow.sklearn
 import pandas as pd
 from mlflow import MlflowClient
 
@@ -33,37 +33,12 @@ def _load_or_use_cache(alias: str):
     return _cache["model"], _cache["version"]
 
 
-def _get_probability(features: dict, alias: str, label: int) -> float:
-    """Load underlying model in its native flavor and call predict_proba.
-
-    Tries sklearn first (works for LR + RF), then xgboost flavor.
-    Falls back to label if neither provides predict_proba.
-    """
-    import pandas as pd
-
-    X = pd.DataFrame([features])
-    model_uri = f"models:/{config.REGISTERED_MODEL_NAME}@{alias}"
-
-    # Try sklearn flavor first
-    try:
-        sk_model = mlflow.sklearn.load_model(model_uri)
-        return float(sk_model.predict_proba(X)[0, 1])
-    except Exception:
-        pass
-
-    # Try xgboost flavor
-    try:
-        xgb_model = mlflow.xgboost.load_model(model_uri)
-        return float(xgb_model.predict_proba(X)[0, 1])
-    except Exception:
-        pass
-
-    # Last resort: degenerate label-based prob
-    return float(label)
-
-
 def predict(features: dict[str, Any], alias: str = "production") -> dict[str, Any]:
-    """Run inference. Returns {prob, label, latency_ms, version}."""
+    """Run inference. Returns {prob, label, latency_ms, version}.
+
+    The registered model is a sklearn Pipeline that includes preprocessing.
+    Pass raw features directly — Pipeline handles scaling + one-hot internally.
+    """
     model, version = _load_or_use_cache(alias)
     X = pd.DataFrame([features])
 
@@ -73,8 +48,12 @@ def predict(features: dict[str, Any], alias: str = "production") -> dict[str, An
 
     label = int(raw[0]) if hasattr(raw, "__getitem__") else int(raw)
 
-    # Get probability — try flavor-specific loaders
-    prob = _get_probability(features, alias, label)
+    # Pipeline always supports predict_proba (all 3 algos do)
+    try:
+        sk_model = mlflow.sklearn.load_model(f"models:/{config.REGISTERED_MODEL_NAME}@{alias}")
+        prob = float(sk_model.predict_proba(X)[0, 1])
+    except Exception:
+        prob = float(label)
 
     return {
         "prob": prob,

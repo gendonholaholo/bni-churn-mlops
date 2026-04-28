@@ -5,7 +5,7 @@ import datetime as dt
 import time
 
 import mlflow
-import mlflow.xgboost
+import mlflow.sklearn
 import numpy as np
 import pandas as pd
 
@@ -15,13 +15,16 @@ from mlops_churn import config, data, monitoring, registry
 def _shift_features(df: pd.DataFrame) -> pd.DataFrame:
     """Apply distribution shift to numeric features (drift simulation).
 
-    NOTE: data/processed/ contains z-scored numerics, so values are in stdev units
-    (~ -3 to +3 typical). Shift +1.5 stdev = noticeable drift (KS detects).
+    Data is in raw units (post-leak-drop, pre-Pipeline-transform). Shifts are sized
+    relative to each column's natural scale to produce noticeable KS drift.
     """
     out = df.copy()
-    for col in ("Age", "CreditScore", "Balance"):
-        if col in out.columns:
-            out[col] = out[col] + 1.5  # +1.5 sigma shift in scaled space
+    if "Age" in out.columns:
+        out["Age"] = out["Age"] + 15  # ~1.5 sigma for Age (sigma ≈ 10)
+    if "CreditScore" in out.columns:
+        out["CreditScore"] = out["CreditScore"] - 100  # ~1.25 sigma (sigma ≈ 80)
+    if "Balance" in out.columns:
+        out["Balance"] = out["Balance"] * 1.4  # multiplicative shift
     return out
 
 
@@ -70,11 +73,8 @@ def main() -> int:
             # Batch predict (much faster than per-row for 50+ samples)
             model_uri = f"models:/{config.REGISTERED_MODEL_NAME}@{args.alias}"
 
-            # Load underlying model in native flavor for batch predict
-            try:
-                native_model = mlflow.sklearn.load_model(model_uri)
-            except Exception:
-                native_model = mlflow.xgboost.load_model(model_uri)
+            # Pipeline-wrapped models — sklearn flavor always works
+            native_model = mlflow.sklearn.load_model(model_uri)
 
             t0 = time.perf_counter()
             labels_array = native_model.predict(X_batch)

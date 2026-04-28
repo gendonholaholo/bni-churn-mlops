@@ -6,7 +6,7 @@ from mlops_churn import config, registry, serving
 
 
 @pytest.fixture
-def production_model(tmp_mlflow_uri, synthetic_data):
+def production_model(tmp_mlflow_uri, synthetic_data, numeric_only_config):
     """Train + register + alias 'production'. Returns features_dict.
 
     Fits on a DataFrame with named columns to ensure sklearn stores feature names,
@@ -35,7 +35,9 @@ def test_predict_returns_dict_with_required_keys(production_model):
     assert out["latency_ms"] >= 0.0
 
 
-def test_predict_ab_returns_both_versions(production_model, tmp_mlflow_uri, synthetic_data):
+def test_predict_ab_returns_both_versions(
+    production_model, tmp_mlflow_uri, synthetic_data, numeric_only_config
+):
     """predict_ab returns dict with production, staging, agreement keys."""
     import pandas as pd
 

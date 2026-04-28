@@ -17,19 +17,20 @@ def test_load_raw_returns_dataframe(tmp_path, monkeypatch, synthetic_dataframe):
 
 
 def test_preprocess_output_schema(synthetic_dataframe):
-    """preprocess encodes categoricals + scales numerics, drops leak columns."""
+    """preprocess drops only leak columns; categoricals + numerics stay raw."""
     out = data.preprocess(synthetic_dataframe)
 
-    # No identifier columns leaking into features
+    # Leak columns dropped if present
     assert "RowNumber" not in out.columns
     assert "CustomerId" not in out.columns
     assert "Surname" not in out.columns
 
-    # Categoricals encoded (one-hot expands Geography + Gender)
-    assert "Geography_Germany" in out.columns or "Geography_France" in out.columns
-    assert "Gender_Male" in out.columns or "Gender_Female" in out.columns
+    # Categoricals stay as strings (not encoded)
+    assert "Geography" in out.columns
+    assert "Gender" in out.columns
+    assert out["Geography"].dtype == object  # still strings
 
-    # Numerics still present
+    # Numerics stay in original units (not scaled)
     assert "CreditScore" in out.columns
 
     # Target preserved

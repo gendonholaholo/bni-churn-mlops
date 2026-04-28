@@ -3,7 +3,9 @@ import mlflow
 from mlops_churn import config, train
 
 
-def test_train_one_returns_valid_run_id(tmp_mlflow_uri, monkeypatch, synthetic_data):
+def test_train_one_returns_valid_run_id(
+    tmp_mlflow_uri, monkeypatch, synthetic_data, numeric_only_config
+):
     """train_one returns run_id that can be fetched from MLflow."""
     X, y = synthetic_data
     monkeypatch.setattr(train, "_load_train_val", lambda: _split_synthetic(X, y))
@@ -15,7 +17,7 @@ def test_train_one_returns_valid_run_id(tmp_mlflow_uri, monkeypatch, synthetic_d
     assert fetched.info.run_id == run_id
 
 
-def test_train_one_logs_5_metrics(tmp_mlflow_uri, monkeypatch, synthetic_data):
+def test_train_one_logs_5_metrics(tmp_mlflow_uri, monkeypatch, synthetic_data, numeric_only_config):
     """train_one logs accuracy, f1, roc_auc, precision, recall."""
     X, y = synthetic_data
     monkeypatch.setattr(train, "_load_train_val", lambda: _split_synthetic(X, y))

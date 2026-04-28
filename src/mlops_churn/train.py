@@ -5,8 +5,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
-import mlflow.xgboost
 import pandas as pd
+from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -17,6 +17,8 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from xgboost import XGBClassifier
 
 from mlops_churn import config, data
@@ -25,12 +27,6 @@ _MODEL_CLASS = {
     "logistic_regression": LogisticRegression,
     "random_forest": RandomForestClassifier,
     "xgboost": XGBClassifier,
-}
-
-_LOG_MODEL_FN = {
-    "logistic_regression": mlflow.sklearn.log_model,
-    "random_forest": mlflow.sklearn.log_model,
-    "xgboost": mlflow.xgboost.log_model,
 }
 
 
@@ -47,6 +43,26 @@ def _compact_param_str(params: dict[str, Any]) -> str:
         v_str = f"{v:.2f}" if isinstance(v, float) else str(v)
         parts.append(f"{k}{v_str}")
     return "-".join(parts)
+
+
+def _build_pipeline(algo: str, params: dict[str, Any]) -> Pipeline:
+    """Build a sklearn Pipeline: preprocessing + model.
+
+    Preprocessing handles raw Churn features:
+    - Numeric columns (CreditScore, Age, Tenure, Balance, NumOfProducts,
+      EstimatedSalary): StandardScaler
+    - Categorical columns (Geography, Gender): OneHotEncoder
+    - Binary columns (HasCrCard, IsActiveMember): pass-through (already 0/1)
+    """
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), config.NUMERIC_FEATURES),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), config.CATEGORICAL_FEATURES),
+        ],
+        remainder="passthrough",  # binary cols pass through
+    )
+    model = _MODEL_CLASS[algo](**params, random_state=42)
+    return Pipeline([("preprocessor", preprocessor), ("model", model)])
 
 
 def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> str:
@@ -68,7 +84,7 @@ def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> 
         mlflow.set_tag("algo", algo)
         mlflow.log_params(params)
 
-        model = _MODEL_CLASS[algo](**params, random_state=42)
+        model = _build_pipeline(algo, params)
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_val)
@@ -93,7 +109,7 @@ def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> 
         mlflow.log_figure(fig, "confusion_matrix.png")
         plt.close(fig)
 
-        # Log model with appropriate flavor
-        _LOG_MODEL_FN[algo](model, name="model", input_example=X_train.iloc[:5])
+        # Log model — Pipeline is sklearn, so always sklearn flavor
+        mlflow.sklearn.log_model(model, name="model", input_example=X_train.iloc[:5])
 
         return run.info.run_id
