@@ -36,6 +36,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["N803", "N806"]  # X, y are sklearn canonical (uppercase OK in ML code)
 
 [tool.ruff.format]
 quote-style = "double"

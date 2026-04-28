@@ -19,7 +19,7 @@ def tmp_mlflow_uri(tmp_path, monkeypatch):
 @pytest.fixture
 def synthetic_data():
     """Small deterministic dataset for unit tests (sklearn built-in)."""
-    X, y = make_classification(  # noqa: N806
+    X, y = make_classification(
         n_samples=200,
         n_features=10,
         n_informative=6,
