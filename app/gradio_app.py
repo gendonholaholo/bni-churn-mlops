@@ -44,7 +44,7 @@ def build_training_lab() -> None:
             slider_refs[a] = _slider_components(a)
         col_groups[a] = col
 
-    tag = gr.Textbox(label="Tag opsional", placeholder="demo-pm-april")  # noqa: F841
+    tag = gr.Textbox(label="Tag opsional", placeholder="demo-pm-april")
     btn = gr.Button("🚀 Train & Log to MLflow", variant="primary")
 
     status = gr.Markdown("", visible=False)
@@ -56,7 +56,7 @@ def build_training_lab() -> None:
 
     algo.change(_toggle_columns, algo, list(col_groups.values()))
 
-    def _run_training(algo_value, *all_params):
+    def _run_training(algo_value, tag_value, *all_params):
         all_specs = list(config.HYPERPARAM_SPEC.items())
         offset = 0
         per_algo = {}
@@ -69,6 +69,8 @@ def build_training_lab() -> None:
 
         try:
             run_id = train.train_one(algo_value, params, source="gradio-lab")
+            if tag_value:
+                mlflow.MlflowClient().set_tag(run_id, "user_tag", tag_value)
             metrics = mlflow.get_run(run_id).data.metrics
             metrics_table = (
                 "| Metric    | Value |\n|-----------|-------|\n"
@@ -104,7 +106,7 @@ def build_training_lab() -> None:
 
     btn.click(
         _run_training,
-        inputs=[algo, *all_sliders],
+        inputs=[algo, tag, *all_sliders],
         outputs=[status, metrics_md, run_link],
     )
 
