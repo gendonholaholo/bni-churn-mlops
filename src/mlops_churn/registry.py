@@ -14,8 +14,14 @@ def _client() -> MlflowClient:
 
 
 def register_run(run_id: str) -> str:
-    """Register the model artifact from a run. Returns version (string)."""
-    model_uri = f"runs:/{run_id}/model"
+    """Register the model artifact from a run. Returns version (string).
+
+    Uses the run's `model_uri` tag (set by train.train_one) which points at the
+    exact logged-model URI (e.g. models:/m-{uuid}). Falls back to the legacy
+    runs:/ URI for backward compat with runs that predate the tag.
+    """
+    run = mlflow.get_run(run_id)
+    model_uri = run.data.tags.get("model_uri") or f"runs:/{run_id}/model"
     mv = mlflow.register_model(model_uri, config.REGISTERED_MODEL_NAME)
     return mv.version
 
@@ -38,6 +44,17 @@ def remove_alias(alias: str) -> None:
 def list_versions() -> list[ModelVersion]:
     """List all versions of the registered model."""
     return _client().search_model_versions(f"name='{config.REGISTERED_MODEL_NAME}'")
+
+
+def get_aliases() -> dict[str, str]:
+    """Return all aliases as {alias_name: version}.
+
+    `ModelVersion.aliases` from search_model_versions is unreliable in MLflow
+    3.1.4 (returns []), so we read from the RegisteredModel which is the
+    authoritative source.
+    """
+    rm = _client().get_registered_model(config.REGISTERED_MODEL_NAME)
+    return dict(rm.aliases or {})
 
 
 def transition_history(version: str) -> list[dict[str, Any]]:

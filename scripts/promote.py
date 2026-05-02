@@ -13,8 +13,15 @@ def cmd_list() -> int:
     if not versions:
         print("  (no versions registered)")
         return 0
+    # Source of truth for aliases is the RegisteredModel, not ModelVersion
+    # (the latter's aliases field is unreliable from search_model_versions).
+    alias_to_version = registry.get_aliases()
+    version_to_aliases: dict[str, list[str]] = {}
+    for alias, ver in alias_to_version.items():
+        version_to_aliases.setdefault(ver, []).append(alias)
     for mv in versions:
-        aliases_str = ", ".join(mv.aliases) if mv.aliases else "(none)"
+        aliases = version_to_aliases.get(mv.version, [])
+        aliases_str = ", ".join(sorted(aliases)) if aliases else "(none)"
         print(f"  v{mv.version} (run {mv.run_id[:6]}) → aliases: {aliases_str}")
     return 0
 

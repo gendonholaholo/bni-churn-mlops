@@ -4,6 +4,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import mlflow
+import mlflow.data
 import mlflow.sklearn
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -84,11 +85,34 @@ def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> 
         mlflow.set_tag("algo", algo)
         mlflow.log_params(params)
 
+        train_dataset = mlflow.data.from_pandas(
+            train_df,
+            source=str(config.DATA_PROCESSED_DIR / "train.csv"),
+            name="churn-train",
+            targets=config.TARGET,
+        )
+        val_dataset = mlflow.data.from_pandas(
+            val_df,
+            source=str(config.DATA_PROCESSED_DIR / "val.csv"),
+            name="churn-val",
+            targets=config.TARGET,
+        )
+        mlflow.log_input(train_dataset, context="training")
+        mlflow.log_input(val_dataset, context="validation")
+
         model = _build_pipeline(algo, params)
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_val)
         y_prob = model.predict_proba(X_val)[:, 1]
+
+        # Log model FIRST so we can link metrics to its model_id (MLflow 3.x
+        # uses the LoggedModel entity, separate from Run, with its own datasets
+        # and metrics shown on the Models tab).
+        logged_model = mlflow.sklearn.log_model(
+            model, name=f"churn-{algo}", input_example=X_train.iloc[:5]
+        )
+        mlflow.set_tag("model_uri", logged_model.model_uri)
 
         metrics = {
             "accuracy": accuracy_score(y_val, y_pred),
@@ -97,7 +121,15 @@ def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> 
             "precision": precision_score(y_val, y_pred),
             "recall": recall_score(y_val, y_pred),
         }
-        mlflow.log_metrics(metrics)
+        # Log each metric with explicit model_id + dataset linkage so the Models
+        # tab populates its Dataset column. Bulk log_metrics() drops this link.
+        for key, value in metrics.items():
+            mlflow.log_metric(
+                key=key,
+                value=value,
+                model_id=logged_model.model_id,
+                dataset=val_dataset,
+            )
 
         # Log feature schema artifact
         schema = {c: str(X_train[c].dtype) for c in X_train.columns}
@@ -108,8 +140,5 @@ def train_one(algo: str, params: dict[str, Any], source: str = "gradio-lab") -> 
         ConfusionMatrixDisplay.from_predictions(y_val, y_pred, ax=ax)
         mlflow.log_figure(fig, "confusion_matrix.png")
         plt.close(fig)
-
-        # Log model — Pipeline is sklearn, so always sklearn flavor
-        mlflow.sklearn.log_model(model, name="model", input_example=X_train.iloc[:5])
 
         return run.info.run_id
