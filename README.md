@@ -12,9 +12,10 @@ Python 3.11 · uv · ruff · MLflow 3.1.4 · Gradio 6.0.1 · scikit-learn 1.7.1 
    ```bash
    uv sync
    ```
-3. Download the Churn Modelling dataset from Kaggle:
-   https://www.kaggle.com/datasets/shrutimechlearn/churn-modelling
-   Place `Churn_Modelling.csv` at `data/raw/Churn_Modelling.csv`.
+
+The Kaggle "Churn Modelling" dataset is checked in at
+`data/raw/Churn_Modelling.csv` so `git clone` + `uv sync` is enough to run
+the demo end-to-end. (Source: https://www.kaggle.com/datasets/shrutimechlearn/churn-modelling)
 
 ## Quickstart Demo
 

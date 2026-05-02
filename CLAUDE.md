@@ -24,7 +24,7 @@ uv run pytest tests/test_train.py::test_train_one_returns_valid_run_id   # singl
 uv run ruff check . && uv run ruff format .
 ```
 
-The Kaggle dataset (`Churn_Modelling.csv`) must be placed at `data/raw/` before `seed_runs`. It is gitignored.
+The Kaggle dataset (`Churn_Modelling.csv`) is checked in at `data/raw/` so `git clone` + `uv sync` is enough — no Kaggle download step. Processed splits in `data/processed/` are regenerated deterministically by `seed_runs` (random_state=42), so they remain gitignored.
 
 **Port 5001, not 5000** — the run script and `config.MLFLOW_UI_URL` deliberately use 5001 because macOS Control Center reserves 5000 (AirPlay Receiver). Don't "fix" this back to 5000.
 
