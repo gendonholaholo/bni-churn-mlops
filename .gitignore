@@ -19,3 +19,6 @@ data/processed/*
 .vscode/
 .idea/
 .DS_Store
+
+# Claude Code session-local state (per-user permissions, settings)
+.claude/
