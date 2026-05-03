@@ -6,6 +6,12 @@ This module has NO internal imports — anyone can import from here without circ
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load .env from project root if present (no-op when missing). Real env vars
+# already set in the shell take precedence — load_dotenv won't override them.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 # ---- Paths ----
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # test/
 DATA_RAW_PATH = PROJECT_ROOT / "data" / "raw" / "Churn_Modelling.csv"

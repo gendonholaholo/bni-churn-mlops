@@ -18,6 +18,10 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Local env (real secrets/host-specific config — .env.example is checked in)
+.env
+!.env.example
+
 # IDE
 .vscode/
 .idea/
