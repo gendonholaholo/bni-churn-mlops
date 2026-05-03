@@ -3,6 +3,7 @@
 This module has NO internal imports — anyone can import from here without circular deps.
 """
 
+import os
 from pathlib import Path
 
 # ---- Paths ----
@@ -11,9 +12,7 @@ DATA_RAW_PATH = PROJECT_ROOT / "data" / "raw" / "Churn_Modelling.csv"
 DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 # ---- MLflow ----
-# File-based SQLite — works without server. Server in run.sh exposes the same DB on
-# port 5001 (macOS reserves port 5000 for AirPlay Receiver / Control Center).
-MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
 # Public URL for MLflow UI (used in Gradio app footer + run links — only valid when
 # run.sh is up).
 MLFLOW_UI_URL = "http://localhost:5001"
