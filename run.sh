@@ -2,23 +2,20 @@
 set -e
 cd "$(dirname "$0")"
 
-echo "🚀 Booting MLflow tracking server (port 5001)..."
-# NOTE: macOS Control Center / AirPlay Receiver squats on port 5000 by default.
-# We use 5001 to avoid the conflict — no need to disable AirPlay in System Settings.
-uv run mlflow server \
-  --backend-store-uri sqlite:///mlflow.db \
-  --default-artifact-root ./mlartifacts \
-  --host 0.0.0.0 --port 5001 &
-MLFLOW_PID=$!
+# Tracking server is provided externally (Docker container on host port 5001 by
+# default). Override with MLFLOW_TRACKING_URI when pointing elsewhere.
+export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-http://localhost:5001}"
 
-cleanup() {
-  echo "🛑 Stopping MLflow (PID $MLFLOW_PID)..."
-  kill $MLFLOW_PID 2>/dev/null || true
-}
-trap cleanup EXIT
+echo "Using MLflow tracking server at $MLFLOW_TRACKING_URI"
+if ! curl -sSf "$MLFLOW_TRACKING_URI/api/2.0/mlflow/experiments/search" \
+     -X POST -H "Content-Type: application/json" -d '{"max_results":1}' \
+     >/dev/null 2>&1; then
+  echo "ERROR: MLflow server not reachable at $MLFLOW_TRACKING_URI"
+  echo "Start it (e.g. docker compose up -d mlflow) or override MLFLOW_TRACKING_URI."
+  exit 1
+fi
 
-sleep 3
-echo "🎨 Booting Gradio app (port 7860)..."
-echo "   - MLflow UI: http://localhost:5001"
+echo "Booting Gradio app (port 7860)..."
+echo "   - MLflow UI: $MLFLOW_TRACKING_URI"
 echo "   - Gradio:    http://localhost:7860"
 uv run python app/gradio_app.py

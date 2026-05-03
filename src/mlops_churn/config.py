@@ -13,9 +13,12 @@ DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 # ---- MLflow ----
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
-# Public URL for MLflow UI (used in Gradio app footer + run links — only valid when
-# run.sh is up).
-MLFLOW_UI_URL = "http://localhost:5001"
+# Public URL for the MLflow UI used in Gradio links/prints. Mirrors the tracking
+# URI when it's HTTP; otherwise falls back to the local server started by run.sh.
+MLFLOW_UI_URL = os.getenv(
+    "MLFLOW_UI_URL",
+    MLFLOW_TRACKING_URI if MLFLOW_TRACKING_URI.startswith("http") else "http://localhost:5001",
+)
 MLFLOW_BACKEND = "sqlite:///mlflow.db"
 MLFLOW_ARTIFACT_ROOT = "./mlartifacts"
 
